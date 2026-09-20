@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MDtracker"
+rootProject.name = "Clicker"
 include(":app")

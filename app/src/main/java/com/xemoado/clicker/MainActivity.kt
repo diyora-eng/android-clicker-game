@@ -8,69 +8,89 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-enum class Screen{
-    Main,Settings
+import  androidx.compose.material3.CircularProgressIndicator
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+
+
+enum class Screen {
+    Main, Settings
 }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val repository = ScoreRepository(applicationContext)
+
+
         setContent {
-           AppNavigation()
+
+            AppNavigation(repository)
         }
     }
-}
-@Composable
-fun AppNavigation(viewModel: ClickerViewModel = viewModel()) {
-    var currentScreen by remember { mutableStateOf(Screen.Main) }
 
-    BackHandler(enabled = currentScreen == Screen.Settings) {
-        currentScreen = Screen.Main
-    }
+    @Composable
+    fun AppNavigation(repository: ScoreStorage) {
 
-    when (currentScreen) {
-        Screen.Main -> ClickerScreen(
-            viewModel = viewModel,
-            onOpenSettings = { currentScreen = Screen.Settings }
+
+        val viewModel: ClickerViewModel = viewModel(
+            factory = viewModelFactory {
+                initializer { ClickerViewModel(repository) }
+            }
         )
-        Screen.Settings -> SettingsScreen(
-            onGoBack = { currentScreen = Screen.Main }
-        )
-    }
-}
 
 
+        @Composable
+        fun ClickerScreen(
+            state: ClickerUiState,
+            onClick: () -> Unit,
+            onOpenSettings: () -> Unit
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (state.isLoading) {
+                    CircularProgressIndicator()
+                } else {
+                    Text(text = "Счет: ${state.score}", fontSize = 40.sp)
+                }
 
-@Composable
-fun ClickerScreen(
-    viewModel: ClickerViewModel = viewModel(),
-    onOpenSettings: () -> Unit
-) {
-    val currentScore by viewModel.score.collectAsState()
+                Spacer(modifier = Modifier.height(30.dp))
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = "Счет: $currentScore", fontSize = 40.sp)
 
-        Spacer(modifier = Modifier.height(30.dp))
+                Button(
+                    onClick = onClick,
+                    enabled = !state.isLoading
+                ) {
+                    Text(text = "КЛИКНИ МЕНЯ!", fontSize = 24.sp)
+                }
 
-        Button(onClick = { viewModel.incrementScore() }) {
-            Text(text = "КЛИКНИ МЕНЯ!", fontSize = 24.sp)
+                Spacer(modifier = Modifier.height(60.dp))
+
+                Button(onClick = onOpenSettings) {
+                    Text(text = "⚙ Настройки")
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(60.dp))
-
-        Button(onClick = onOpenSettings) {
-            Text(text = "⚙ Настройки")
+        @Preview(showBackground = true)
+        @Composable
+        fun ClickerScreenPreview() {
+            ClickerScreen(
+                state = ClickerUiState(score = 999, isLoading = false),
+                onClick = {},
+                onOpenSettings = {}
+            )
         }
     }
 }
-
